@@ -20,6 +20,25 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // Set up search history buttons
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.search-again-btn')) {
+            const btn = e.target.closest('.search-again-btn');
+            const city = btn.getAttribute('data-city');
+            
+            if (city) {
+                // Update the input field
+                document.getElementById('city-input').value = city;
+                
+                // Scroll to the top of the page
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+                // Fetch data for this city
+                fetchActivityRankings(city);
+            }
+        }
+    });
+    
     // Function to fetch activity rankings
     function fetchActivityRankings(city) {
         // Show loading spinner, hide results and errors

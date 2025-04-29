@@ -2,6 +2,7 @@ import os
 import logging
 import requests
 from flask import Flask, render_template, request, jsonify
+from models import db, SearchHistory
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -11,10 +12,56 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "default-secret-key-for-development")
 
+# Configure the database
+# Make sure we have a DATABASE_URL
+database_url = os.environ.get("DATABASE_URL")
+if database_url:
+    # Ensure the URL starts with postgresql:// not postgres://
+    database_url = database_url.replace("postgres://", "postgresql://")
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
+    }
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    
+    # Initialize the database with the app
+    db.init_app(app)
+    
+    # Create tables
+    with app.app_context():
+        db.create_all()
+else:
+    logger.error("DATABASE_URL environment variable not set")
+    raise RuntimeError("DATABASE_URL environment variable not set")
+
 @app.route('/')
 def index():
     """Render the main page"""
-    return render_template('index.html')
+    # Get recent search history (last 10)
+    try:
+        search_history = SearchHistory.query.order_by(SearchHistory.searched_at.desc()).limit(10).all()
+    except Exception as e:
+        logger.error(f"Error retrieving search history: {str(e)}")
+        search_history = []
+    
+    return render_template('index.html', search_history=search_history)
+
+@app.route('/api/history')
+def get_search_history():
+    """API endpoint to retrieve search history"""
+    try:
+        # Get the 20 most recent searches
+        search_history = SearchHistory.query.order_by(SearchHistory.searched_at.desc()).limit(20).all()
+        
+        # Convert to list of dictionaries
+        history_list = [item.to_dict() for item in search_history]
+        
+        return jsonify({'history': history_list})
+    
+    except Exception as e:
+        logger.error(f"Error retrieving search history: {str(e)}")
+        return jsonify({'error': 'An error occurred retrieving search history'}), 500
 
 @app.route('/api/rank', methods=['POST'])
 def rank_activities():
@@ -34,6 +81,24 @@ def rank_activities():
         
         # Calculate activity scores and get rankings
         rankings = calculate_activity_scores(weather_data)
+        
+        # Find the scores for each activity to save to the database
+        activity_scores = {}
+        for item in rankings:
+            if item["activity"] != "daily_data":
+                activity_scores[item["activity"]] = item["score"]
+        
+        # Save search to database
+        search_history = SearchHistory(
+            city=city,
+            skiing_score=activity_scores.get("Skiing", 0),
+            surfing_score=activity_scores.get("Surfing", 0),
+            outdoor_sightseeing_score=activity_scores.get("Outdoor Sightseeing", 0),
+            indoor_sightseeing_score=activity_scores.get("Indoor Sightseeing", 0)
+        )
+        
+        db.session.add(search_history)
+        db.session.commit()
         
         # Format response
         response = {
