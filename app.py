@@ -103,6 +103,10 @@ def rank_activities():
         # Format response
         response = {
             'city': city,
+            'coordinates': {
+                'latitude': lat,
+                'longitude': lon
+            },
             'rankings': rankings
         }
         

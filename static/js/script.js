@@ -1,7 +1,9 @@
-// Global variables for storing activity data and charts
+// Global variables for storing activity data, charts, and map
 let activityChart = null;
 let dailyScoresChart = null;
 let weatherChart = null;
+let cityMap = null;
+let cityMarker = null;
 
 // Register necessary Chart.js plugins
 // Note: This is commented out for the time being since we're loading plugins but not using them yet
@@ -89,8 +91,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Function to display results
     function displayResults(data) {
-        // Update city name
+        // Update city name everywhere
         document.getElementById('city-name').textContent = data.city;
+        const cityNameElements = document.querySelectorAll('.city-name-display');
+        cityNameElements.forEach(el => {
+            el.textContent = data.city;
+        });
         
         // Get and sort rankings
         const rankings = data.rankings;
@@ -104,6 +110,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Create daily scores chart from the daily data
         if (dailyDataEntry && dailyDataEntry.daily_data) {
             createDailyScoresChart(dailyDataEntry.daily_data);
+            createWeatherDataChart(dailyDataEntry.daily_data);
+        }
+        
+        // Initialize or update the map if coordinates are available
+        if (data.coordinates && data.coordinates.latitude && data.coordinates.longitude) {
+            initializeMap(data.coordinates.latitude, data.coordinates.longitude, data.city);
         }
         
         // Update ranking list
@@ -528,5 +540,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
+    }
+    
+    // Function to initialize or update the map
+    function initializeMap(latitude, longitude, cityName) {
+        const mapContainer = document.getElementById('map-container');
+        
+        // If map doesn't exist, create it
+        if (!cityMap) {
+            cityMap = L.map('map-container', {
+                zoomControl: true,
+                scrollWheelZoom: false // Disable scroll wheel zoom for better user experience
+            }).setView([latitude, longitude], 10);
+            
+            // Add OpenStreetMap tile layer (free and no API key required)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 18
+            }).addTo(cityMap);
+        } else {
+            // If map exists, just update the view
+            cityMap.setView([latitude, longitude], 10);
+        }
+        
+        // Clear any existing markers
+        if (cityMarker) {
+            cityMap.removeLayer(cityMarker);
+        }
+        
+        // Add a marker for the city
+        cityMarker = L.marker([latitude, longitude])
+            .addTo(cityMap)
+            .bindPopup(`<b>${cityName}</b><br>Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`)
+            .openPopup();
+            
+        // Force a resize after a slight delay to ensure the map renders correctly
+        setTimeout(() => {
+            cityMap.invalidateSize();
+        }, 100);
     }
 });

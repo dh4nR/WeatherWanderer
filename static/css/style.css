@@ -27,6 +27,21 @@
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
+/* Map container styling */
+#map-container {
+    height: 300px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+#map-container:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
 /* Score progress bar styling */
 .progress {
     background-color: rgba(0, 0, 0, 0.2);
@@ -44,6 +59,24 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Large activity icons for cards */
+.activity-icon-large {
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Activity card styling */
+.activity-card {
+    transition: all 0.3s ease;
+}
+
+.activity-card:hover {
+    transform: translateY(-8px) !important;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25) !important;
 }
 
 /* Weather condition badges */
