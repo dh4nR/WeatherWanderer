@@ -1,9 +1,9 @@
-// Global variables for storing activity data, charts, and map
+// Global variables for storing activity data and charts
 let activityChart = null;
 let dailyScoresChart = null;
 let weatherChart = null;
-let cityMap = null;
-let cityMarker = null;
+let debounceTimer = null;
+let selectedCity = null;
 
 // Register necessary Chart.js plugins
 // Note: This is commented out for the time being since we're loading plugins but not using them yet
@@ -91,12 +91,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Function to display results
     function displayResults(data) {
-        // Update city name everywhere
+        // Update city name in the results
         document.getElementById('city-name').textContent = data.city;
-        const cityNameElements = document.querySelectorAll('.city-name-display');
-        cityNameElements.forEach(el => {
-            el.textContent = data.city;
-        });
         
         // Get and sort rankings
         const rankings = data.rankings;
@@ -113,10 +109,7 @@ document.addEventListener('DOMContentLoaded', function() {
             createWeatherDataChart(dailyDataEntry.daily_data);
         }
         
-        // Initialize or update the map if coordinates are available
-        if (data.coordinates && data.coordinates.latitude && data.coordinates.longitude) {
-            initializeMap(data.coordinates.latitude, data.coordinates.longitude, data.city);
-        }
+        // No map initialization needed anymore
         
         // Update ranking list
         const rankingsList = document.getElementById('rankings-list');
@@ -542,41 +535,82 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Function to initialize or update the map
-    function initializeMap(latitude, longitude, cityName) {
-        const mapContainer = document.getElementById('map-container');
+    // Set up city autocomplete functionality
+    const cityInput = document.getElementById('city-input');
+    const autocompleteResults = document.getElementById('autocomplete-results');
+    const suggestionsList = document.getElementById('suggestions-list');
+    
+    // Add input event listener for city input field
+    cityInput.addEventListener('input', function() {
+        const query = this.value.trim();
         
-        // If map doesn't exist, create it
-        if (!cityMap) {
-            cityMap = L.map('map-container', {
-                zoomControl: true,
-                scrollWheelZoom: false // Disable scroll wheel zoom for better user experience
-            }).setView([latitude, longitude], 10);
-            
-            // Add OpenStreetMap tile layer (free and no API key required)
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 18
-            }).addTo(cityMap);
-        } else {
-            // If map exists, just update the view
-            cityMap.setView([latitude, longitude], 10);
+        // Clear any existing timer
+        if (debounceTimer) {
+            clearTimeout(debounceTimer);
         }
         
-        // Clear any existing markers
-        if (cityMarker) {
-            cityMap.removeLayer(cityMarker);
+        // Hide results if input is empty
+        if (!query) {
+            autocompleteResults.classList.add('d-none');
+            return;
         }
         
-        // Add a marker for the city
-        cityMarker = L.marker([latitude, longitude])
-            .addTo(cityMap)
-            .bindPopup(`<b>${cityName}</b><br>Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`)
-            .openPopup();
-            
-        // Force a resize after a slight delay to ensure the map renders correctly
-        setTimeout(() => {
-            cityMap.invalidateSize();
-        }, 100);
+        // Debounce input to avoid making too many requests
+        debounceTimer = setTimeout(() => {
+            if (query.length >= 2) {
+                fetchCitySuggestions(query);
+            } else {
+                autocompleteResults.classList.add('d-none');
+            }
+        }, 300);
+    });
+    
+    // Handle clicks outside to hide suggestions
+    document.addEventListener('click', function(e) {
+        if (!cityInput.contains(e.target) && !autocompleteResults.contains(e.target)) {
+            autocompleteResults.classList.add('d-none');
+        }
+    });
+    
+    // Function to fetch city suggestions
+    function fetchCitySuggestions(query) {
+        fetch(`/api/cities?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(suggestions => {
+                // Clear previous suggestions
+                suggestionsList.innerHTML = '';
+                
+                if (suggestions.length > 0) {
+                    // Add each suggestion to the list
+                    suggestions.forEach(city => {
+                        const item = document.createElement('li');
+                        item.className = 'list-group-item suggestion-item';
+                        item.textContent = city.display_name;
+                        item.dataset.name = city.name;
+                        
+                        // Handle click on suggestion
+                        item.addEventListener('click', function() {
+                            cityInput.value = city.display_name;
+                            selectedCity = city.name;
+                            autocompleteResults.classList.add('d-none');
+                            
+                            // Fetch data for this city
+                            fetchActivityRankings(city.name);
+                        });
+                        
+                        suggestionsList.appendChild(item);
+                    });
+                    
+                    // Show the results container
+                    autocompleteResults.classList.remove('d-none');
+                } else {
+                    // Hide results if no suggestions
+                    autocompleteResults.classList.add('d-none');
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching city suggestions:', error);
+                autocompleteResults.classList.add('d-none');
+            });
     }
 });

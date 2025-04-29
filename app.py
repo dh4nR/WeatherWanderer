@@ -252,3 +252,48 @@ def calculate_activity_scores(weather_data):
     rankings.append({"activity": "daily_data", "daily_data": daily_data})
     
     return rankings
+
+@app.route('/api/cities', methods=['GET'])
+def suggest_cities():
+    """API endpoint to get city suggestions based on a search term"""
+    query = request.args.get('q', '')
+    
+    if not query or len(query) < 2:
+        return jsonify([])
+    
+    try:
+        # Use Open-Meteo geocoding API to get suggestions
+        geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={query}&count=5"
+        response = requests.get(geo_url)
+        response.raise_for_status()
+        data = response.json()
+        
+        suggestions = []
+        if "results" in data and data["results"]:
+            for result in data["results"]:
+                city_name = result["name"]
+                country = result.get("country", "")
+                admin1 = result.get("admin1", "")
+                
+                # Format the suggestion with available location info
+                location_info = []
+                if admin1 and admin1 != city_name:
+                    location_info.append(admin1)
+                if country:
+                    location_info.append(country)
+                
+                location_str = ", ".join(location_info)
+                display_name = f"{city_name}, {location_str}" if location_str else city_name
+                
+                suggestions.append({
+                    "name": city_name,
+                    "display_name": display_name,
+                    "lat": result["latitude"],
+                    "lon": result["longitude"]
+                })
+        
+        return jsonify(suggestions)
+        
+    except Exception as e:
+        logger.error(f"Error fetching city suggestions: {str(e)}")
+        return jsonify([]), 500
