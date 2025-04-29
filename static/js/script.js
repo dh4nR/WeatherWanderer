@@ -3,6 +3,10 @@ let activityChart = null;
 let dailyScoresChart = null;
 let weatherChart = null;
 
+// Register necessary Chart.js plugins
+// Note: This is commented out for the time being since we're loading plugins but not using them yet
+// Chart.register(ChartDataLabels);
+
 // DOM elements
 document.addEventListener('DOMContentLoaded', function() {
     const cityForm = document.getElementById('city-form');
