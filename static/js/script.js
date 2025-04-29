@@ -1,6 +1,7 @@
 // Global variables for storing activity data and charts
 let activityChart = null;
 let dailyScoresChart = null;
+let weatherChart = null;
 
 // DOM elements
 document.addEventListener('DOMContentLoaded', function() {
@@ -165,62 +166,99 @@ document.addEventListener('DOMContentLoaded', function() {
         // Already filtered in displayResults, but we'll keep this for safety
         const chartData = rankings.filter(item => item.activity !== 'daily_data');
         
-        // Prepare data
-        const labels = chartData.map(item => item.activity);
-        const scores = chartData.map(item => item.score);
+        // Prepare data - sort by score for better visualization
+        const sortedData = [...chartData].sort((a, b) => b.score - a.score);
+        const labels = sortedData.map(item => item.activity);
+        const scores = sortedData.map(item => item.score);
         
         // Map activities to colors
         const colorMap = {
-            'Skiing': 'rgba(0, 123, 255, 0.7)',       // Blue
-            'Surfing': 'rgba(40, 167, 69, 0.7)',      // Green
-            'Outdoor Sightseeing': 'rgba(255, 193, 7, 0.7)', // Yellow
-            'Indoor Sightseeing': 'rgba(220, 53, 69, 0.7)'   // Red
+            'Skiing': 'rgba(13, 110, 253, 0.8)',         // Blue
+            'Surfing': 'rgba(25, 135, 84, 0.8)',         // Green
+            'Outdoor Sightseeing': 'rgba(255, 193, 7, 0.8)', // Yellow
+            'Indoor Sightseeing': 'rgba(220, 53, 69, 0.8)'   // Red
         };
         
         // Create colors array based on the actual activities
-        const backgroundColors = labels.map(activity => colorMap[activity] || 'rgba(150, 150, 150, 0.7)');
+        const backgroundColors = labels.map(activity => colorMap[activity] || 'rgba(150, 150, 150, 0.8)');
         
         // Destroy existing chart if it exists
         if (activityChart) {
             activityChart.destroy();
         }
         
-        // Create chart
+        // Create chart using horizontal bar for better readability
         activityChart = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Activity Score (out of 10)',
+                    label: 'Activity Score',
                     data: scores,
                     backgroundColor: backgroundColors,
-                    borderColor: backgroundColors.map(color => color.replace('0.7', '1')),
-                    borderWidth: 1
+                    borderColor: backgroundColors.map(color => color.replace('0.8', '1')),
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    barPercentage: 0.7,
+                    categoryPercentage: 0.8
                 }]
             },
             options: {
+                indexAxis: 'y',  // Makes the bar chart horizontal
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: {
+                    x: {
                         beginAtZero: true,
                         max: 10,
+                        grid: {
+                            color: 'rgba(200, 200, 200, 0.2)'
+                        },
+                        ticks: {
+                            font: {
+                                weight: 'bold'
+                            }
+                        },
                         title: {
                             display: true,
-                            text: 'Score (0-10)'
+                            text: 'Score (0-10)',
+                            font: {
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                weight: 'bold'
+                            }
                         }
                     }
                 },
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Activity Scores Comparison',
+                        text: 'Activity Suitability Ranking',
                         font: {
-                            size: 16
+                            size: 18,
+                            weight: 'bold'
+                        },
+                        padding: {
+                            bottom: 15
                         }
                     },
                     legend: {
                         display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Score: ${context.raw}/10`;
+                            }
+                        }
                     }
                 }
             }
@@ -234,26 +272,30 @@ document.addEventListener('DOMContentLoaded', function() {
         // Format dates for better display
         const formattedDates = dailyData.days.map(dateStr => {
             const date = new Date(dateStr);
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
         });
         
         // Prepare datasets for each activity
         const datasets = [];
-        const colors = {
-            'Skiing': 'rgba(0, 123, 255, 0.7)',
-            'Surfing': 'rgba(40, 167, 69, 0.7)',
-            'Outdoor Sightseeing': 'rgba(255, 193, 7, 0.7)',
-            'Indoor Sightseeing': 'rgba(220, 53, 69, 0.7)'
+        const activityColors = {
+            'Skiing': 'rgba(13, 110, 253, 0.8)',
+            'Surfing': 'rgba(25, 135, 84, 0.8)',
+            'Outdoor Sightseeing': 'rgba(255, 193, 7, 0.8)',
+            'Indoor Sightseeing': 'rgba(220, 53, 69, 0.8)'
         };
         
+        // Add activity score datasets
         for (const activity in dailyData.daily_scores) {
             datasets.push({
                 label: activity,
                 data: dailyData.daily_scores[activity],
-                borderColor: colors[activity].replace('0.7', '1'),
-                backgroundColor: colors[activity],
-                tension: 0.1,
-                fill: false
+                borderColor: activityColors[activity].replace('0.8', '1'),
+                backgroundColor: activityColors[activity],
+                borderWidth: 2,
+                tension: 0.2,
+                fill: false,
+                pointRadius: 4,
+                pointHoverRadius: 6
             });
         }
         
@@ -276,18 +318,207 @@ document.addEventListener('DOMContentLoaded', function() {
                     y: {
                         beginAtZero: true,
                         max: 10,
+                        grid: {
+                            color: 'rgba(200, 200, 200, 0.2)'
+                        },
                         title: {
                             display: true,
-                            text: 'Daily Score (0-10)'
+                            text: 'Daily Score (0-10)',
+                            font: {
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                weight: 'bold'
+                            }
                         }
                     }
+                },
+                interaction: {
+                    mode: 'index',
+                    intersect: false
                 },
                 plugins: {
                     title: {
                         display: true,
                         text: '7-Day Activity Score Forecast',
                         font: {
-                            size: 16
+                            size: 18,
+                            weight: 'bold'
+                        },
+                        padding: {
+                            bottom: 15
+                        }
+                    },
+                    tooltip: {
+                        usePointStyle: true,
+                        callbacks: {
+                            title: function(context) {
+                                return context[0].label;
+                            },
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.raw.toFixed(1)}/10`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Create a second chart for weather data
+        createWeatherDataChart(dailyData);
+    }
+    
+    // New function to create weather data chart
+    function createWeatherDataChart(dailyData) {
+        const ctx = document.getElementById('weather-chart').getContext('2d');
+        
+        // Format dates for better display
+        const formattedDates = dailyData.days.map(dateStr => {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        });
+        
+        // Prepare temperature data
+        const tempMaxData = dailyData.temp_max;
+        const tempMinData = dailyData.temp_min;
+        const precipitationData = dailyData.precipitation;
+        const snowfallData = dailyData.snowfall;
+        
+        // Destroy existing chart if it exists
+        if (window.weatherChart) {
+            window.weatherChart.destroy();
+        }
+        
+        // Create chart
+        window.weatherChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: formattedDates,
+                datasets: [
+                    {
+                        label: 'Max Temp (°C)',
+                        data: tempMaxData,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.8)',
+                        borderWidth: 1,
+                        type: 'line',
+                        yAxisID: 'y',
+                        tension: 0.2,
+                        fill: false,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        order: 1
+                    },
+                    {
+                        label: 'Min Temp (°C)',
+                        data: tempMinData,
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                        borderWidth: 1,
+                        type: 'line',
+                        yAxisID: 'y',
+                        tension: 0.2,
+                        fill: false,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        order: 2
+                    },
+                    {
+                        label: 'Precipitation (mm)',
+                        data: precipitationData,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.8)',
+                        borderWidth: 1,
+                        yAxisID: 'y1',
+                        order: 3,
+                        barPercentage: 0.6,
+                        categoryPercentage: 0.8,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Snowfall (cm)',
+                        data: snowfallData,
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        backgroundColor: 'rgba(153, 102, 255, 0.8)',
+                        borderWidth: 1,
+                        yAxisID: 'y1',
+                        order: 4,
+                        barPercentage: 0.6,
+                        categoryPercentage: 0.8,
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Temperature (°C)',
+                            font: {
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(200, 200, 200, 0.2)'
+                        }
+                    },
+                    y1: {
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Precipitation/Snowfall (mm/cm)',
+                            font: {
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                weight: 'bold'
+                            }
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '7-Day Weather Forecast',
+                        font: {
+                            size: 18,
+                            weight: 'bold'
+                        },
+                        padding: {
+                            bottom: 15
+                        }
+                    },
+                    tooltip: {
+                        usePointStyle: true,
+                        callbacks: {
+                            title: function(context) {
+                                return context[0].label;
+                            }
                         }
                     }
                 }

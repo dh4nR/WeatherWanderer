@@ -10,15 +10,40 @@
     margin-bottom: 2rem;
 }
 
+/* Chart styling */
 .chart-container {
     position: relative;
-    height: 250px;
+    height: 350px; /* Increased height for better visualization */
     margin-bottom: 30px;
+    padding: 10px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
 }
 
+.chart-container:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Score progress bar styling */
+.progress {
+    background-color: rgba(0, 0, 0, 0.2);
+    height: 20px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* Activity icons */
 .activity-icon {
     font-size: 1.5rem;
     margin-right: 0.5rem;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Weather condition badges */
@@ -35,8 +60,60 @@
     margin: 0.2rem;
 }
 
+/* Card enhancements */
+.card {
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Search history styles */
+.search-again-btn {
+    transition: all 0.2s ease;
+}
+
+.search-again-btn:hover {
+    transform: scale(1.05);
+}
+
+/* Animation for loading spinner */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.spinner-border {
+    animation: spinner-border 0.75s linear infinite, pulse 2s infinite;
+}
+
 /* Responsive adjustments */
+@media (max-width: 992px) {
+    .chart-container {
+        height: 300px;
+    }
+}
+
 @media (max-width: 768px) {
+    .chart-container {
+        height: 250px;
+    }
+    
+    .jumbotron {
+        padding: 1.5rem 1rem;
+    }
+}
+
+@media (max-width: 576px) {
     .chart-container {
         height: 200px;
     }

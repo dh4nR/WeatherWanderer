@@ -67,61 +67,122 @@
                 </div>
             </div>
             
+            <!-- Activity Scores Forecast -->
             <div class="card mb-4">
-                <div class="card-header bg-secondary text-white">
+                <div class="card-header bg-primary text-white">
                     <h3 class="mb-0">
-                        <i class="fas fa-calendar-alt"></i> 7-Day Activity Forecast
+                        <i class="fas fa-calendar-alt"></i> 7-Day Activity Scores Forecast
                     </h3>
                 </div>
                 <div class="card-body">
                     <div class="chart-container" style="height: 300px;">
                         <canvas id="daily-chart"></canvas>
                     </div>
-                    
-                    <div class="row mt-4">
-                        <div class="col-md-12">
-                            <div class="card-deck">
-                                <div class="card mb-3">
-                                    <div class="card-header bg-info text-white">
-                                        <i class="fas fa-skiing"></i> Skiing
-                                    </div>
-                                    <div class="card-body">
-                                        <p class="card-text">
-                                            Best when there's fresh snowfall and temperatures are below freezing.
-                                        </p>
+                </div>
+            </div>
+            
+            <!-- Weather Data Forecast -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-cloud-sun"></i> 7-Day Weather Forecast
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="weather-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Activity Information Cards -->
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-info-circle"></i> Activity Information
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 col-lg-3 mb-4">
+                            <div class="card h-100 border-info">
+                                <div class="card-header bg-info text-white">
+                                    <h5 class="mb-0"><i class="fas fa-skiing"></i> Skiing</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">
+                                        <strong>Ideal conditions:</strong>
+                                        <ul>
+                                            <li>Fresh snowfall</li>
+                                            <li>Temperatures below 2°C</li>
+                                            <li>Minimal wind</li>
+                                        </ul>
+                                    </p>
+                                    <div class="text-center mt-2">
+                                        <span class="badge bg-info p-2">Score based on snowfall & temp</span>
                                     </div>
                                 </div>
-                                
-                                <div class="card mb-3">
-                                    <div class="card-header bg-primary text-white">
-                                        <i class="fas fa-water"></i> Surfing
-                                    </div>
-                                    <div class="card-body">
-                                        <p class="card-text">
-                                            Ideal with moderate temperatures (15-30°C) and minimal precipitation.
-                                        </p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-3 mb-4">
+                            <div class="card h-100 border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-water"></i> Surfing</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">
+                                        <strong>Ideal conditions:</strong>
+                                        <ul>
+                                            <li>Temperatures: 15-30°C</li>
+                                            <li>Minimal precipitation (<2mm)</li>
+                                            <li>Best around 20-25°C</li>
+                                        </ul>
+                                    </p>
+                                    <div class="text-center mt-2">
+                                        <span class="badge bg-primary p-2">Score based on temp & precip</span>
                                     </div>
                                 </div>
-                                
-                                <div class="card mb-3">
-                                    <div class="card-header bg-success text-white">
-                                        <i class="fas fa-mountain"></i> Outdoor Sightseeing
-                                    </div>
-                                    <div class="card-body">
-                                        <p class="card-text">
-                                            Best with comfortable temperatures (15-25°C) and clear skies.
-                                        </p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-3 mb-4">
+                            <div class="card h-100 border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h5 class="mb-0"><i class="fas fa-mountain"></i> Outdoor Sightseeing</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">
+                                        <strong>Ideal conditions:</strong>
+                                        <ul>
+                                            <li>Temperatures: 15-25°C</li>
+                                            <li>Minimal precipitation (<1mm)</li>
+                                            <li>Perfect around 20°C</li>
+                                        </ul>
+                                    </p>
+                                    <div class="text-center mt-2">
+                                        <span class="badge bg-success p-2">Score based on comfort & sky</span>
                                     </div>
                                 </div>
-                                
-                                <div class="card mb-3">
-                                    <div class="card-header bg-warning text-white">
-                                        <i class="fas fa-museum"></i> Indoor Sightseeing
-                                    </div>
-                                    <div class="card-body">
-                                        <p class="card-text">
-                                            Recommended during heavy rain, extreme temperatures, or poor outdoor conditions.
-                                        </p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-3 mb-4">
+                            <div class="card h-100 border-warning">
+                                <div class="card-header bg-warning text-white">
+                                    <h5 class="mb-0"><i class="fas fa-museum"></i> Indoor Sightseeing</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">
+                                        <strong>When recommended:</strong>
+                                        <ul>
+                                            <li>Heavy rain (≥5mm)</li>
+                                            <li>Extreme temperatures (>32°C or <5°C)</li>
+                                            <li>Poor outdoor conditions</li>
+                                        </ul>
+                                    </p>
+                                    <div class="text-center mt-2">
+                                        <span class="badge bg-warning p-2">Score based on poor weather</span>
                                     </div>
                                 </div>
                             </div>
