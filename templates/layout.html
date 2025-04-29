@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Activity Weather Rankings</title>
+    
+    <!-- Bootstrap CSS (Replit theme) -->
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-cloud-sun-rain"></i> City Activity Weather Rankings
+            </a>
+        </div>
+    </nav>
+    
+    <main class="container py-4">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <footer class="bg-dark text-light py-3 mt-5">
+        <div class="container text-center">
+            <p class="mb-1">Powered by Open-Meteo API</p>
+            <p class="mb-0 small">
+                <a href="https://open-meteo.com/" target="_blank" class="text-light">Open-Meteo</a> | 
+                <a href="https://geocoding-api.open-meteo.com/" target="_blank" class="text-light">Geocoding API</a>
+            </p>
+        </div>
+    </footer>
+    
+    <!-- Bootstrap JavaScript Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

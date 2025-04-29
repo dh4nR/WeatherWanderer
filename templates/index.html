@@ -1,0 +1,185 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="jumbotron text-center">
+    <h1 class="display-4"><i class="fas fa-map-marker-alt"></i> City Activity Weather Rankings</h1>
+    <p class="lead">
+        Discover the best activities for any city based on the 7-day weather forecast.
+    </p>
+</div>
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Enter a City</h5>
+                <form id="city-form">
+                    <div class="input-group mb-3">
+                        <input type="text" id="city-input" class="form-control" 
+                               placeholder="e.g., London, New York, Tokyo..." required>
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search"></i> Get Rankings
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Loading Spinner -->
+                <div id="loading-spinner" class="text-center d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Analyzing weather data...</p>
+                </div>
+                
+                <!-- Error Alert -->
+                <div id="error-alert" class="alert alert-danger d-none" role="alert"></div>
+            </div>
+        </div>
+        
+        <!-- Results Section -->
+        <div id="results-container" class="d-none">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-chart-bar"></i> Activity Rankings for <span id="city-name"></span>
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> Scores are based on a 7-day weather forecast and range from 0-10 (higher is better).
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4>Rankings</h4>
+                            <ul id="rankings-list" class="list-group mb-4"></ul>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <canvas id="activity-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-calendar-alt"></i> 7-Day Activity Forecast
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="daily-chart"></canvas>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="card-deck">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-info text-white">
+                                        <i class="fas fa-skiing"></i> Skiing
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="card-text">
+                                            Best when there's fresh snowfall and temperatures are below freezing.
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="card mb-3">
+                                    <div class="card-header bg-primary text-white">
+                                        <i class="fas fa-water"></i> Surfing
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="card-text">
+                                            Ideal with moderate temperatures (15-30°C) and minimal precipitation.
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="card mb-3">
+                                    <div class="card-header bg-success text-white">
+                                        <i class="fas fa-mountain"></i> Outdoor Sightseeing
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="card-text">
+                                            Best with comfortable temperatures (15-25°C) and clear skies.
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="card mb-3">
+                                    <div class="card-header bg-warning text-white">
+                                        <i class="fas fa-museum"></i> Indoor Sightseeing
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="card-text">
+                                            Recommended during heavy rain, extreme temperatures, or poor outdoor conditions.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h3 class="mb-0">About This Tool</h3>
+            </div>
+            <div class="card-body">
+                <p>
+                    This application helps you plan your trip by analyzing the 7-day weather forecast for your destination
+                    and ranking activities based on weather suitability.
+                </p>
+                <h5>How It Works</h5>
+                <ul>
+                    <li>Weather data is obtained from the Open-Meteo API</li>
+                    <li>Algorithm analyzes temperature, precipitation, and snowfall</li>
+                    <li>Activities are scored on a scale of 0-10 (higher is better)</li>
+                    <li>Rankings are presented to help you plan your trip</li>
+                </ul>
+                <h5>Activities Analyzed</h5>
+                <div class="row">
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-skiing activity-icon text-info"></i>
+                            <span>Skiing</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-water activity-icon text-primary"></i>
+                            <span>Surfing</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-mountain activity-icon text-success"></i>
+                            <span>Outdoor Sightseeing</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-museum activity-icon text-warning"></i>
+                            <span>Indoor Sightseeing</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

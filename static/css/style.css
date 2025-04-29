@@ -1,0 +1,43 @@
+/* 
+  Custom styles to complement Bootstrap 
+  Using minimal custom CSS as recommended by the style guidelines
+*/
+
+.jumbotron {
+    background-color: var(--bs-dark);
+    border-radius: 0.3rem;
+    padding: 2rem 1rem;
+    margin-bottom: 2rem;
+}
+
+.chart-container {
+    position: relative;
+    height: 250px;
+    margin-bottom: 30px;
+}
+
+.activity-icon {
+    font-size: 1.5rem;
+    margin-right: 0.5rem;
+}
+
+/* Weather condition badges */
+.weather-badge {
+    display: inline-block;
+    padding: 0.25em 0.6em;
+    font-size: 75%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+    margin: 0.2rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .chart-container {
+        height: 200px;
+    }
+}
