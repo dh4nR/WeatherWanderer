@@ -1,0 +1,218 @@
+# Project: City Activity Weather Rankings
+
+## Backend (FastAPI)
+
+# backend/main.py
+
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import List
+import requests
+
+app = FastAPI()
+
+class CityRequest(BaseModel):
+    city: str
+
+class ActivityScore(BaseModel):
+    activity: str
+    score: float
+
+class ActivityRankingResponse(BaseModel):
+    city: str
+    rankings: List[ActivityScore]
+
+def get_coordinates(city: str):
+    geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={city}&count=1"
+    res = requests.get(geo_url)
+    res.raise_for_status()
+    data = res.json()
+    if "results" not in data or not data["results"]:
+        raise ValueError("City not found.")
+    result = data["results"][0]
+    return result["latitude"], result["longitude"]
+
+def get_weather(lat: float, lon: float):
+    weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum&timezone=auto"
+    res = requests.get(weather_url)
+    res.raise_for_status()
+    return res.json()
+
+def calculate_activity_scores(weather_data: dict) -> dict:
+    days = len(weather_data["daily"]["time"])
+    scores = {
+        "skiing": 0,
+        "surfing": 0,
+        "outdoor_sightseeing": 0,
+        "indoor_sightseeing": 0
+    }
+
+    for i in range(days):
+        temp_min = weather_data["daily"]["temperature_2m_min"][i]
+        temp_max = weather_data["daily"]["temperature_2m_max"][i]
+        precipitation = weather_data["daily"]["precipitation_sum"][i]
+        snowfall = weather_data["daily"]["snowfall_sum"][i]
+
+        if snowfall > 0 and temp_max <= 2:
+            scores["skiing"] += 1
+
+        if 15 <= temp_max <= 30 and precipitation < 2:
+            scores["surfing"] += 1
+
+        if 15 <= temp_max <= 25 and precipitation < 1:
+            scores["outdoor_sightseeing"] += 1
+
+        if precipitation >= 5 or temp_max > 32 or temp_max < 5:
+            scores["indoor_sightseeing"] += 1
+
+    return scores
+
+@app.post("/rank", response_model=ActivityRankingResponse)
+def rank_activities(request: CityRequest):
+    try:
+        lat, lon = get_coordinates(request.city)
+        weather_data = get_weather(lat, lon)
+        activity_scores = calculate_activity_scores(weather_data)
+        sorted_activities = sorted(activity_scores.items(), key=lambda x: x[1], reverse=True)
+
+        return ActivityRankingResponse(
+            city=request.city,
+            rankings=[ActivityScore(activity=act, score=score) for act, score in sorted_activities]
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# backend/requirements.txt
+fastapi
+uvicorn
+requests
+pydantic
+
+
+## Frontend (React)
+
+# frontend/src/App.jsx
+
+import { useState } from 'react';
+import CityForm from './components/CityForm';
+import Results from './components/Results';
+
+function App() {
+  const [rankings, setRankings] = useState(null);
+
+  return (
+    <div className="p-6 font-sans">
+      <h1 className="text-3xl mb-6">City Activity Weather Rankings</h1>
+      <CityForm onResults={setRankings} />
+      {rankings && <Results rankings={rankings} />}
+    </div>
+  );
+}
+
+export default App;
+
+# frontend/src/components/CityForm.jsx
+
+import { useState } from 'react';
+import axios from 'axios';
+
+function CityForm({ onResults }) {
+  const [city, setCity] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await axios.post('http://localhost:8000/rank', { city });
+      onResults(res.data);
+    } catch (error) {
+      alert('Error fetching data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="mb-6">
+      <input
+        className="border p-2 mr-2"
+        value={city}
+        onChange={(e) => setCity(e.target.value)}
+        placeholder="Enter a city"
+      />
+      <button type="submit" className="bg-blue-500 text-white px-4 py-2">
+        {loading ? 'Loading...' : 'Get Rankings'}
+      </button>
+    </form>
+  );
+}
+
+export default CityForm;
+
+# frontend/src/components/Results.jsx
+
+function Results({ rankings }) {
+  return (
+    <div>
+      <h2 className="text-2xl mb-4">Top Activities in {rankings.city}</h2>
+      <ul className="list-disc ml-6">
+        {rankings.rankings.map((item) => (
+          <li key={item.activity}>
+            {item.activity.replace('_', ' ')}: {item.score} points
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default Results;
+
+
+## README.md
+
+# City Activity Weather Rankings
+
+## Overview
+This app lets you input a city and receive a 7-day ranking of how suitable it is for:
+- Skiing
+- Surfing
+- Outdoor sightseeing
+- Indoor sightseeing
+
+Powered by Open-Meteo.
+
+## Tech Stack
+- Backend: FastAPI (Python)
+- Frontend: React.js
+- Weather API: Open-Meteo
+
+## Setup
+### Backend
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+### Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## Omissions
+- No full user authentication (focus on core weather logic).
+- No advanced error handling (basic exceptions only).
+- No database (real-time queries only).
+
+## Future Improvements
+- Advanced scoring models.
+- Location auto-completion.
+- Better surf data (e.g., wave height).
+
+## AI Assistance
+Used ChatGPT and Copilot for scaffolding; all logic was manually reviewed and refined.
