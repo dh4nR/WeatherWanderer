@@ -71,67 +71,71 @@ document.addEventListener('DOMContentLoaded', function() {
         // Get and sort rankings
         const rankings = data.rankings;
         
-        // Create activity scores chart
-        createActivityChart(rankings);
+        // Find daily data entry
+        const dailyDataEntry = rankings.find(item => item.activity === 'daily_data');
+        
+        // Create activity scores chart (excluding the daily data entry)
+        createActivityChart(rankings.filter(item => item.activity !== 'daily_data'));
         
         // Create daily scores chart from the daily data
-        if (data.rankings[0].daily_data) {
-            createDailyScoresChart(data.rankings[0].daily_data);
+        if (dailyDataEntry && dailyDataEntry.daily_data) {
+            createDailyScoresChart(dailyDataEntry.daily_data);
         }
         
         // Update ranking list
         const rankingsList = document.getElementById('rankings-list');
         rankingsList.innerHTML = '';
         
-        rankings.forEach((item, index) => {
-            if (item.activity !== 'daily_data') {
-                const scorePercentage = item.score * 10; // Convert to percentage (0-100)
-                
-                const listItem = document.createElement('li');
-                listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
-                
-                const activityName = document.createElement('span');
-                activityName.textContent = `${index + 1}. ${item.activity}`;
-                
-                const scoreDisplay = document.createElement('div');
-                scoreDisplay.className = 'd-flex align-items-center';
-                
-                const scoreText = document.createElement('span');
-                scoreText.className = 'me-2';
-                scoreText.textContent = `${item.score}/10`;
-                
-                const progressContainer = document.createElement('div');
-                progressContainer.className = 'progress flex-grow-1 ms-3';
-                progressContainer.style.width = '100px';
-                
-                const progressBar = document.createElement('div');
-                progressBar.className = 'progress-bar';
-                progressBar.style.width = `${scorePercentage}%`;
-                progressBar.setAttribute('role', 'progressbar');
-                progressBar.setAttribute('aria-valuenow', scorePercentage);
-                progressBar.setAttribute('aria-valuemin', '0');
-                progressBar.setAttribute('aria-valuemax', '100');
-                
-                // Set progress bar color based on activity
-                if (item.activity === 'Skiing') {
-                    progressBar.classList.add('bg-info');
-                } else if (item.activity === 'Surfing') {
-                    progressBar.classList.add('bg-primary');
-                } else if (item.activity === 'Outdoor Sightseeing') {
-                    progressBar.classList.add('bg-success');
-                } else if (item.activity === 'Indoor Sightseeing') {
-                    progressBar.classList.add('bg-warning');
-                }
-                
-                progressContainer.appendChild(progressBar);
-                scoreDisplay.appendChild(scoreText);
-                scoreDisplay.appendChild(progressContainer);
-                
-                listItem.appendChild(activityName);
-                listItem.appendChild(scoreDisplay);
-                
-                rankingsList.appendChild(listItem);
+        // Filter out the daily data entry for the rankings list
+        const activityRankings = rankings.filter(item => item.activity !== 'daily_data');
+        
+        activityRankings.forEach((item, index) => {
+            const scorePercentage = item.score * 10; // Convert to percentage (0-100)
+            
+            const listItem = document.createElement('li');
+            listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+            
+            const activityName = document.createElement('span');
+            activityName.textContent = `${index + 1}. ${item.activity}`;
+            
+            const scoreDisplay = document.createElement('div');
+            scoreDisplay.className = 'd-flex align-items-center';
+            
+            const scoreText = document.createElement('span');
+            scoreText.className = 'me-2';
+            scoreText.textContent = `${item.score}/10`;
+            
+            const progressContainer = document.createElement('div');
+            progressContainer.className = 'progress flex-grow-1 ms-3';
+            progressContainer.style.width = '100px';
+            
+            const progressBar = document.createElement('div');
+            progressBar.className = 'progress-bar';
+            progressBar.style.width = `${scorePercentage}%`;
+            progressBar.setAttribute('role', 'progressbar');
+            progressBar.setAttribute('aria-valuenow', scorePercentage);
+            progressBar.setAttribute('aria-valuemin', '0');
+            progressBar.setAttribute('aria-valuemax', '100');
+            
+            // Set progress bar color based on activity
+            if (item.activity === 'Skiing') {
+                progressBar.classList.add('bg-info');
+            } else if (item.activity === 'Surfing') {
+                progressBar.classList.add('bg-primary');
+            } else if (item.activity === 'Outdoor Sightseeing') {
+                progressBar.classList.add('bg-success');
+            } else if (item.activity === 'Indoor Sightseeing') {
+                progressBar.classList.add('bg-warning');
             }
+            
+            progressContainer.appendChild(progressBar);
+            scoreDisplay.appendChild(scoreText);
+            scoreDisplay.appendChild(progressContainer);
+            
+            listItem.appendChild(activityName);
+            listItem.appendChild(scoreDisplay);
+            
+            rankingsList.appendChild(listItem);
         });
     }
     
@@ -139,18 +143,23 @@ document.addEventListener('DOMContentLoaded', function() {
     function createActivityChart(rankings) {
         const ctx = document.getElementById('activity-chart').getContext('2d');
         
-        // Filter out the daily_data entry
+        // Already filtered in displayResults, but we'll keep this for safety
         const chartData = rankings.filter(item => item.activity !== 'daily_data');
         
         // Prepare data
         const labels = chartData.map(item => item.activity);
         const scores = chartData.map(item => item.score);
-        const backgroundColors = [
-            'rgba(0, 123, 255, 0.7)',    // Blue for Skiing
-            'rgba(40, 167, 69, 0.7)',    // Green for Surfing
-            'rgba(255, 193, 7, 0.7)',    // Yellow for Outdoor
-            'rgba(220, 53, 69, 0.7)'     // Red for Indoor
-        ];
+        
+        // Map activities to colors
+        const colorMap = {
+            'Skiing': 'rgba(0, 123, 255, 0.7)',       // Blue
+            'Surfing': 'rgba(40, 167, 69, 0.7)',      // Green
+            'Outdoor Sightseeing': 'rgba(255, 193, 7, 0.7)', // Yellow
+            'Indoor Sightseeing': 'rgba(220, 53, 69, 0.7)'   // Red
+        };
+        
+        // Create colors array based on the actual activities
+        const backgroundColors = labels.map(activity => colorMap[activity] || 'rgba(150, 150, 150, 0.7)');
         
         // Destroy existing chart if it exists
         if (activityChart) {

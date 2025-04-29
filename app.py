@@ -32,16 +32,13 @@ def rank_activities():
         # Get weather data
         weather_data = get_weather(lat, lon)
         
-        # Calculate activity scores
-        activity_scores = calculate_activity_scores(weather_data)
-        
-        # Sort activities by score
-        sorted_activities = sorted(activity_scores.items(), key=lambda x: x[1], reverse=True)
+        # Calculate activity scores and get rankings
+        rankings = calculate_activity_scores(weather_data)
         
         # Format response
         response = {
             'city': city,
-            'rankings': [{'activity': act, 'score': score} for act, score in sorted_activities]
+            'rankings': rankings
         }
         
         return jsonify(response)
@@ -113,6 +110,15 @@ def calculate_activity_scores(weather_data):
         precipitation = weather_data["daily"]["precipitation_sum"][i]
         snowfall = weather_data["daily"]["snowfall_sum"][i]
         
+        # Make sure these are all floats
+        temp_min = float(temp_min)
+        temp_max = float(temp_max)
+        precipitation = float(precipitation)
+        snowfall = float(snowfall)
+        
+        # Initialize activity score for this day
+        outdoor_score = 0
+        
         # Skiing score (0-10 scale)
         if snowfall > 0 and temp_max <= 2:
             skiing_score = min(10, snowfall * 2)
@@ -167,7 +173,13 @@ def calculate_activity_scores(weather_data):
     for activity in scores:
         scores[activity] = round((scores[activity] / max_possible_score) * 10, 1)
     
-    # Add daily data to the scores
-    scores["daily_data"] = daily_data
+    # Create a rankings list in the expected format for the frontend
+    rankings = []
+    for activity, score in sorted(scores.items(), key=lambda x: x[1], reverse=True):
+        if activity != "daily_data":
+            rankings.append({"activity": activity, "score": score})
     
-    return scores
+    # Add the daily data as a separate entry
+    rankings.append({"activity": "daily_data", "daily_data": daily_data})
+    
+    return rankings
