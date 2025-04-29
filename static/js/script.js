@@ -2,8 +2,6 @@
 let activityChart = null;
 let dailyScoresChart = null;
 let weatherChart = null;
-let debounceTimer = null;
-let selectedCity = null;
 
 // Register necessary Chart.js plugins
 // Note: This is commented out for the time being since we're loading plugins but not using them yet
@@ -535,82 +533,5 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Set up city autocomplete functionality
-    const cityInput = document.getElementById('city-input');
-    const autocompleteResults = document.getElementById('autocomplete-results');
-    const suggestionsList = document.getElementById('suggestions-list');
-    
-    // Add input event listener for city input field
-    cityInput.addEventListener('input', function() {
-        const query = this.value.trim();
-        
-        // Clear any existing timer
-        if (debounceTimer) {
-            clearTimeout(debounceTimer);
-        }
-        
-        // Hide results if input is empty
-        if (!query) {
-            autocompleteResults.classList.add('d-none');
-            return;
-        }
-        
-        // Debounce input to avoid making too many requests
-        debounceTimer = setTimeout(() => {
-            if (query.length >= 2) {
-                fetchCitySuggestions(query);
-            } else {
-                autocompleteResults.classList.add('d-none');
-            }
-        }, 300);
-    });
-    
-    // Handle clicks outside to hide suggestions
-    document.addEventListener('click', function(e) {
-        if (!cityInput.contains(e.target) && !autocompleteResults.contains(e.target)) {
-            autocompleteResults.classList.add('d-none');
-        }
-    });
-    
-    // Function to fetch city suggestions
-    function fetchCitySuggestions(query) {
-        fetch(`/api/cities?q=${encodeURIComponent(query)}`)
-            .then(response => response.json())
-            .then(suggestions => {
-                // Clear previous suggestions
-                suggestionsList.innerHTML = '';
-                
-                if (suggestions.length > 0) {
-                    // Add each suggestion to the list
-                    suggestions.forEach(city => {
-                        const item = document.createElement('li');
-                        item.className = 'list-group-item suggestion-item';
-                        item.textContent = city.display_name;
-                        item.dataset.name = city.name;
-                        
-                        // Handle click on suggestion
-                        item.addEventListener('click', function() {
-                            cityInput.value = city.display_name;
-                            selectedCity = city.name;
-                            autocompleteResults.classList.add('d-none');
-                            
-                            // Fetch data for this city
-                            fetchActivityRankings(city.name);
-                        });
-                        
-                        suggestionsList.appendChild(item);
-                    });
-                    
-                    // Show the results container
-                    autocompleteResults.classList.remove('d-none');
-                } else {
-                    // Hide results if no suggestions
-                    autocompleteResults.classList.add('d-none');
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching city suggestions:', error);
-                autocompleteResults.classList.add('d-none');
-            });
-    }
+    // Autocomplete functionality has been removed
 });

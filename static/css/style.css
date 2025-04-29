@@ -27,36 +27,7 @@
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Search autocomplete styling */
-.autocomplete-container {
-    position: relative;
-}
-
-.autocomplete-results {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    max-height: 300px;
-    overflow-y: auto;
-    border-radius: 0 0 8px 8px;
-    background-color: var(--bs-dark);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.autocomplete-results .list-group-item {
-    cursor: pointer;
-    transition: all 0.2s ease;
-    background-color: var(--bs-dark);
-    color: var(--bs-light);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-.autocomplete-results .list-group-item:hover {
-    background-color: var(--bs-primary);
-}
+/* Autocomplete styling has been removed */
 
 /* Score progress bar styling */
 .progress {

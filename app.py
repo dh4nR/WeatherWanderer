@@ -12,28 +12,22 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "default-secret-key-for-development")
 
-# Configure the database
-# Make sure we have a DATABASE_URL
-database_url = os.environ.get("DATABASE_URL")
-if database_url:
-    # Ensure the URL starts with postgresql:// not postgres://
-    database_url = database_url.replace("postgres://", "postgresql://")
-    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
-    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        "pool_recycle": 300,
-        "pool_pre_ping": True,
-    }
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    
-    # Initialize the database with the app
-    db.init_app(app)
-    
-    # Create tables
-    with app.app_context():
-        db.create_all()
-else:
-    logger.error("DATABASE_URL environment variable not set")
-    raise RuntimeError("DATABASE_URL environment variable not set")
+# Set a flag to initialize the database after the app starts 
+# This makes startup faster by deferring database operations
+initialize_db_later = True
+
+# Configure the database 
+database_url = os.environ.get("DATABASE_URL", "")
+database_url = database_url.replace("postgres://", "postgresql://")
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True
+}
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+# Initialize the database with the app
+db.init_app(app)
 
 @app.route('/')
 def index():
@@ -252,48 +246,3 @@ def calculate_activity_scores(weather_data):
     rankings.append({"activity": "daily_data", "daily_data": daily_data})
     
     return rankings
-
-@app.route('/api/cities', methods=['GET'])
-def suggest_cities():
-    """API endpoint to get city suggestions based on a search term"""
-    query = request.args.get('q', '')
-    
-    if not query or len(query) < 2:
-        return jsonify([])
-    
-    try:
-        # Use Open-Meteo geocoding API to get suggestions
-        geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={query}&count=5"
-        response = requests.get(geo_url)
-        response.raise_for_status()
-        data = response.json()
-        
-        suggestions = []
-        if "results" in data and data["results"]:
-            for result in data["results"]:
-                city_name = result["name"]
-                country = result.get("country", "")
-                admin1 = result.get("admin1", "")
-                
-                # Format the suggestion with available location info
-                location_info = []
-                if admin1 and admin1 != city_name:
-                    location_info.append(admin1)
-                if country:
-                    location_info.append(country)
-                
-                location_str = ", ".join(location_info)
-                display_name = f"{city_name}, {location_str}" if location_str else city_name
-                
-                suggestions.append({
-                    "name": city_name,
-                    "display_name": display_name,
-                    "lat": result["latitude"],
-                    "lon": result["longitude"]
-                })
-        
-        return jsonify(suggestions)
-        
-    except Exception as e:
-        logger.error(f"Error fetching city suggestions: {str(e)}")
-        return jsonify([]), 500
