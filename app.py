@@ -15,6 +15,12 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "default-secret-key-for-development")
 
+
+# Create tables
+with app.app_context():
+    db.create_all()
+
+
 # Configure the database
 database_url = os.environ.get("DATABASE_URL", "").replace("postgres://", "postgresql://")
 app.config.update(
