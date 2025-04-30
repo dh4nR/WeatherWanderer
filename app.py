@@ -1,8 +1,8 @@
-import os
+from flask import Flask, jsonify, request
+from models import db, SearchHistory
 import logging
 import requests
-from flask import Flask, render_template, request, jsonify
-from models import db, SearchHistory
+import os
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -12,11 +12,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "default-secret-key-for-development")
 
-# Set a flag to initialize the database after the app starts 
-# This makes startup faster by deferring database operations
-initialize_db_later = True
-
-# Configure the database 
+# Configure the database
 database_url = os.environ.get("DATABASE_URL", "")
 database_url = database_url.replace("postgres://", "postgresql://")
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
@@ -29,106 +25,77 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # Initialize the database with the app
 db.init_app(app)
 
-@app.route('/')
-def index():
-    """Render the main page"""
-    # Get recent search history (last 10)
-    try:
-        search_history = SearchHistory.query.order_by(SearchHistory.searched_at.desc()).limit(10).all()
-    except Exception as e:
-        logger.error(f"Error retrieving search history: {str(e)}")
-        search_history = []
-    
-    return render_template('index.html', search_history=search_history)
+@app.route('/api/health')
+def health_check():
+    """API health check endpoint"""
+    return jsonify({
+        "status": "healthy",
+        "message": "Weather Rankings API is operational"
+    })
 
-@app.route('/api/history')
-def get_search_history():
-    """API endpoint to retrieve search history"""
-    try:
-        # Get the 20 most recent searches
-        search_history = SearchHistory.query.order_by(SearchHistory.searched_at.desc()).limit(20).all()
-        
-        # Convert to list of dictionaries
-        history_list = [item.to_dict() for item in search_history]
-        
-        return jsonify({'history': history_list})
-    
-    except Exception as e:
-        logger.error(f"Error retrieving search history: {str(e)}")
-        return jsonify({'error': 'An error occurred retrieving search history'}), 500
-
-@app.route('/api/rank', methods=['POST'])
-def rank_activities():
-    """API endpoint to rank activities for a city based on weather data"""
+@app.route('/api/rankings', methods=['POST'])
+def get_rankings():
+    """Get activity rankings for a city"""
     try:
         data = request.get_json()
         city = data.get('city')
-        
+
         if not city:
             return jsonify({'error': 'City name is required'}), 400
-        
-        # Get coordinates for the city
+
+        # Get coordinates
         lat, lon = get_coordinates(city)
-        
+
         # Get weather data
         weather_data = get_weather(lat, lon)
-        
-        # Calculate activity scores and get rankings
+
+        # Calculate rankings
         rankings = calculate_activity_scores(weather_data)
-        
-        # Find the scores for each activity to save to the database
-        activity_scores = {}
-        for item in rankings:
-            if item["activity"] != "daily_data":
-                activity_scores[item["activity"]] = item["score"]
-        
-        # Save search to database
-        search_history = SearchHistory(
-            city=city,
-            skiing_score=activity_scores.get("Skiing", 0),
-            surfing_score=activity_scores.get("Surfing", 0),
-            outdoor_sightseeing_score=activity_scores.get("Outdoor Sightseeing", 0),
-            indoor_sightseeing_score=activity_scores.get("Indoor Sightseeing", 0)
-        )
-        
-        db.session.add(search_history)
-        db.session.commit()
-        
-        # Format response
-        response = {
+
+        # Save search history
+        save_search_history(city, rankings)
+
+        return jsonify({
             'city': city,
-            'coordinates': {
-                'latitude': lat,
-                'longitude': lon
-            },
+            'coordinates': {'latitude': lat, 'longitude': lon},
             'rankings': rankings
-        }
-        
-        return jsonify(response)
-    
+        })
+
     except ValueError as e:
-        logger.error(f"Error processing request: {str(e)}")
         return jsonify({'error': str(e)}), 400
-    
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
+        logger.error(f"Error processing request: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
+@app.route('/api/history')
+def get_history():
+    """Get recent search history"""
+    try:
+        history = SearchHistory.query.order_by(
+            SearchHistory.searched_at.desc()
+        ).limit(10).all()
+        return jsonify({
+            'history': [item.to_dict() for item in history]
+        })
+    except Exception as e:
+        logger.error(f"Error retrieving history: {str(e)}")
+        return jsonify({'error': 'Error retrieving search history'}), 500
+
 def get_coordinates(city):
-    """Get latitude and longitude for a city using Open-Meteo geocoding API"""
+    """Get city coordinates from Open-Meteo geocoding API"""
     geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={city}&count=1"
     response = requests.get(geo_url)
     response.raise_for_status()
     data = response.json()
-    
+
     if "results" not in data or not data["results"]:
-        raise ValueError(f"City '{city}' not found. Please check the spelling and try again.")
-    
+        raise ValueError(f"City '{city}' not found")
+
     result = data["results"][0]
     return result["latitude"], result["longitude"]
 
 def get_weather(lat, lon):
-    """Get weather forecast data from Open-Meteo API"""
+    """Get weather forecast from Open-Meteo API"""
     weather_url = (
         f"https://api.open-meteo.com/v1/forecast?"
         f"latitude={lat}&longitude={lon}"
@@ -140,109 +107,65 @@ def get_weather(lat, lon):
     return response.json()
 
 def calculate_activity_scores(weather_data):
-    """
-    Calculate activity scores based on weather data.
-    
-    Scoring criteria:
-    - Skiing: Good if snowfall > 0 and max temp <= 2°C
-    - Surfing: Good if 15°C <= max temp <= 30°C and precipitation < 2mm
-    - Outdoor sightseeing: Good if 15°C <= max temp <= 25°C and precipitation < 1mm
-    - Indoor sightseeing: Good if precipitation >= 5mm or max temp > 32°C or max temp < 5°C
-    """
+    """Calculate activity scores based on weather conditions"""
     days = len(weather_data["daily"]["time"])
     scores = {
         "Skiing": 0,
-        "Surfing": 0,
+        "Surfing": 0, 
         "Outdoor Sightseeing": 0,
         "Indoor Sightseeing": 0
     }
-    
-    # Daily data to be returned for charting
-    daily_data = {
-        "days": weather_data["daily"]["time"],
-        "temp_max": weather_data["daily"]["temperature_2m_max"],
-        "temp_min": weather_data["daily"]["temperature_2m_min"],
-        "precipitation": weather_data["daily"]["precipitation_sum"],
-        "snowfall": weather_data["daily"]["snowfall_sum"],
-        "daily_scores": {activity: [0] * days for activity in scores.keys()}
-    }
-    
+
     for i in range(days):
-        temp_min = weather_data["daily"]["temperature_2m_min"][i]
-        temp_max = weather_data["daily"]["temperature_2m_max"][i]
-        precipitation = weather_data["daily"]["precipitation_sum"][i]
-        snowfall = weather_data["daily"]["snowfall_sum"][i]
-        
-        # Make sure these are all floats
-        temp_min = float(temp_min)
-        temp_max = float(temp_max)
-        precipitation = float(precipitation)
-        snowfall = float(snowfall)
-        
-        # Initialize activity score for this day
-        outdoor_score = 0
-        
-        # Skiing score (0-10 scale)
-        if snowfall > 0 and temp_max <= 2:
-            skiing_score = min(10, snowfall * 2)
-            scores["Skiing"] += skiing_score
-            daily_data["daily_scores"]["Skiing"][i] = skiing_score
-        
-        # Surfing score (0-10 scale)
-        if 15 <= temp_max <= 30 and precipitation < 2:
-            # Best surfing conditions around 20-25°C with no rain
-            temp_factor = 10 - abs(22.5 - temp_max) * 0.7
-            rain_factor = 5 - (precipitation * 2)
-            surfing_score = max(0, min(10, temp_factor + rain_factor))
-            scores["Surfing"] += surfing_score
-            daily_data["daily_scores"]["Surfing"][i] = surfing_score
-        
-        # Outdoor sightseeing score (0-10 scale)
-        if precipitation < 5:  # Still possible but less ideal with some rain
-            # Perfect around 20°C with no rain
-            temp_factor = 10 - min(10, abs(20 - temp_max) * 0.7)
-            rain_factor = 5 - min(5, precipitation * 1.5)
-            outdoor_score = max(0, min(10, temp_factor + rain_factor))
-            scores["Outdoor Sightseeing"] += outdoor_score
-            daily_data["daily_scores"]["Outdoor Sightseeing"][i] = outdoor_score
-        
-        # Indoor sightseeing score (0-10 scale)
-        # Higher score when outdoor activities are less ideal
-        if precipitation >= 5 or temp_max > 32 or temp_max < 5:
-            base_score = 7  # Base score when weather is bad
-            # Additional factors
-            if precipitation >= 5:
-                rain_bonus = min(3, precipitation / 5)
-            else:
-                rain_bonus = 0
-                
-            temp_bonus = 0
-            if temp_max > 32:
-                temp_bonus = min(3, (temp_max - 32) / 3)
-            elif temp_max < 5:
-                temp_bonus = min(3, (5 - temp_max) / 3)
-                
-            indoor_score = min(10, base_score + rain_bonus + temp_bonus)
-            scores["Indoor Sightseeing"] += indoor_score
-            daily_data["daily_scores"]["Indoor Sightseeing"][i] = indoor_score
-        else:
-            # Even on nice days, indoor activities have some value
-            indoor_score = max(2, 5 - (0.5 * outdoor_score / 10))
-            scores["Indoor Sightseeing"] += indoor_score
-            daily_data["daily_scores"]["Indoor Sightseeing"][i] = indoor_score
-    
-    # Normalize scores to make them comparable
-    max_possible_score = 10 * days
-    for activity in scores:
-        scores[activity] = round((scores[activity] / max_possible_score) * 10, 1)
-    
-    # Create a rankings list in the expected format for the frontend
-    rankings = []
-    for activity, score in sorted(scores.items(), key=lambda x: x[1], reverse=True):
-        if activity != "daily_data":
-            rankings.append({"activity": activity, "score": score})
-    
-    # Add the daily data as a separate entry
-    rankings.append({"activity": "daily_data", "daily_data": daily_data})
-    
-    return rankings
+        temp_max = float(weather_data["daily"]["temperature_2m_max"][i])
+        temp_min = float(weather_data["daily"]["temperature_2m_min"][i])
+        precip = float(weather_data["daily"]["precipitation_sum"][i])
+        snow = float(weather_data["daily"]["snowfall_sum"][i])
+
+        # Calculate daily scores
+        if snow > 0 and temp_max <= 2:
+            scores["Skiing"] += min(10, snow * 2)
+
+        if 15 <= temp_max <= 30 and precip < 2:
+            scores["Surfing"] += max(0, 10 - abs(22.5 - temp_max) * 0.7)
+
+        if precip < 5:
+            scores["Outdoor Sightseeing"] += max(0, 10 - abs(20 - temp_max) * 0.7)
+
+        if precip >= 5 or temp_max > 32 or temp_max < 5:
+            scores["Indoor Sightseeing"] += min(10, 7 + min(3, precip / 5))
+
+    # Normalize scores
+    max_possible = 10 * days
+    return [
+        {"activity": activity, "score": round((score / max_possible) * 10, 1)}
+        for activity, score in sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    ]
+
+def save_search_history(city, rankings):
+    """Save search results to database"""
+    scores = {r["activity"]: r["score"] for r in rankings}
+    history = SearchHistory(
+        city=city,
+        skiing_score=scores.get("Skiing", 0),
+        surfing_score=scores.get("Surfing", 0),
+        outdoor_sightseeing_score=scores.get("Outdoor Sightseeing", 0),
+        indoor_sightseeing_score=scores.get("Indoor Sightseeing", 0)
+    )
+    db.session.add(history)
+    db.session.commit()
+
+@app.route('/')
+def index():
+    """Render the main page"""
+    # Get recent search history (last 10)
+    try:
+        search_history = SearchHistory.query.order_by(SearchHistory.searched_at.desc()).limit(10).all()
+    except Exception as e:
+        logger.error(f"Error retrieving search history: {str(e)}")
+        search_history = []
+
+    return render_template('index.html', search_history=search_history)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
